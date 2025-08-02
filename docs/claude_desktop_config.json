@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "uber-mcp-server": {
+      "command": "/Users/jrizzo/Projects/ai/agents/ubermcp/run_mcp_bridge.sh"
+    }
+  }
+}

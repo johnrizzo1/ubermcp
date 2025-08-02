@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "uber-mcp-server": {
+      "url": "http://localhost:8080/mcp/v1/message",
+      "transport": "http"
+    }
+  }
+}

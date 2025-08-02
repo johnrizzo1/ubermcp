@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(devenv:*)",
+      "Bash(PYTHONPATH=./src pytest --cov=src --cov-report=term-missing --cov-fail-under=80 src/tests -v)",
+      "Bash(PYTHONPATH=./src python -c \"from src.main import create_app; print(''Import successful'')\")",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(nix develop:*)",
+      "Bash(grep:*)",
+      "Bash(chmod:*)",
+      "Bash(nix run:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(python:*)",
+      "Bash(mv:*)",
+      "Bash(find:*)",
+      "Bash(pylint:*)",
+      "Bash(mypy:*)"
+    ],
+    "deny": []
+  }
+}
