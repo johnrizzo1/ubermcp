@@ -1,9 +1,13 @@
+"""Kubernetes CronJobs tool for managing scheduled jobs."""
+
 from kubernetes import client, config
 
 from src.base_tool import BaseTool
 
 
 class KubernetesCronJobsTool(BaseTool):
+    """Tool for listing and managing Kubernetes CronJobs."""
+
     def execute(self, **kwargs):
         try:
             config.load_kube_config()
@@ -25,5 +29,11 @@ class KubernetesCronJobsTool(BaseTool):
                     }
                 )
             return {"cron_jobs": cron_job_list}
+        except config.ConfigException as e:
+            return {"error": f"Kubernetes configuration error: {str(e)}"}
+
+        except ValueError as e:
+            return {"error": f"Invalid parameter value: {str(e)}"}
+
         except Exception as e:
-            return {"error": str(e)}
+            return {"error": f"Unexpected error: {str(e)}"}

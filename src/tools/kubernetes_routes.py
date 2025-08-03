@@ -1,9 +1,13 @@
+"""Kubernetes routes tool for managing OpenShift routes."""
+
 from kubernetes import config
 
 from src.base_tool import BaseTool
 
 
 class KubernetesRoutesTool(BaseTool):
+    """Tool for managing OpenShift routes (OpenShift-specific resource)."""
+
     def execute(self, **kwargs):
         try:
             config.load_kube_config()
@@ -17,5 +21,11 @@ class KubernetesRoutesTool(BaseTool):
                     "This tool is a placeholder."
                 )
             }
+        except config.ConfigException as e:
+            return {"error": f"Kubernetes configuration error: {str(e)}"}
+
+        except ValueError as e:
+            return {"error": f"Invalid parameter value: {str(e)}"}
+
         except Exception as e:
-            return {"error": str(e)}
+            return {"error": f"Unexpected error: {str(e)}"}

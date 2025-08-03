@@ -89,8 +89,22 @@ class SimpleMCPBridge:
                 "error": {"code": -32601, "message": f"Method not found: {method}"},
             }
 
+        except httpx.HTTPStatusError as e:
+            logger.error("HTTP error handling request: %s", e)
+            return {
+                "jsonrpc": "2.0",
+                "id": request_id,
+                "error": {"code": -32603, "message": f"HTTP error: {str(e)}"},
+            }
+        except (httpx.ConnectError, httpx.TimeoutException, httpx.NetworkError) as e:
+            logger.error("Network error handling request: %s", e)
+            return {
+                "jsonrpc": "2.0",
+                "id": request_id,
+                "error": {"code": -32603, "message": f"Network error: {str(e)}"},
+            }
         except Exception as e:
-            logger.error("Error handling request: %s", e)
+            logger.error("Unexpected error handling request: %s", e)
             return {
                 "jsonrpc": "2.0",
                 "id": request_id,
@@ -107,13 +121,25 @@ class SimpleMCPBridge:
                 response = await client.get(f"{self.base_url}/")
                 response.raise_for_status()
                 logger.info("Connected to FastAPI server")
-        except Exception:
-            logger.error("FastAPI server not running at %s", self.base_url)
+        except (httpx.ConnectError, httpx.TimeoutException, httpx.NetworkError) as e:
+            logger.error("Cannot connect to FastAPI server at %s: %s", self.base_url, e)
             error_response = {
                 "jsonrpc": "2.0",
                 "error": {
                     "code": -32603,
                     "message": f"FastAPI server not running at {self.base_url}. Start it with 'nix run' first.",
+                },
+            }
+            sys.stdout.write(json.dumps(error_response, separators=(",", ":")) + "\n")
+            sys.stdout.flush()
+            return
+        except Exception as e:
+            logger.error("Unexpected error connecting to FastAPI server: %s", e)
+            error_response = {
+                "jsonrpc": "2.0",
+                "error": {
+                    "code": -32603,
+                    "message": f"Error connecting to server: {str(e)}",
                 },
             }
             sys.stdout.write(json.dumps(error_response, separators=(",", ":")) + "\n")
@@ -149,8 +175,10 @@ class SimpleMCPBridge:
 
             except json.JSONDecodeError as e:
                 logger.error("Invalid JSON: %s", e)
+            except (IOError, OSError) as e:
+                logger.error("IO Error: %s", e)
             except Exception as e:
-                logger.error("Error: %s", e)
+                logger.error("Unexpected error in main loop: %s", e)
 
 
 async def main():

@@ -1,9 +1,13 @@
+"""Kubernetes pods tool for managing pods."""
+
 from kubernetes import client, config
 
 from src.base_tool import BaseTool
 
 
 class KubernetesPodsTool(BaseTool):
+    """Tool for listing and managing Kubernetes pods."""
+
     def execute(self, **kwargs):
         try:
             config.load_kube_config()
@@ -21,5 +25,11 @@ class KubernetesPodsTool(BaseTool):
                     }
                 )
             return {"pods": pod_list}
+        except config.ConfigException as e:
+            return {"error": f"Kubernetes configuration error: {str(e)}"}
+
+        except ValueError as e:
+            return {"error": f"Invalid parameter value: {str(e)}"}
+
         except Exception as e:
-            return {"error": str(e)}
+            return {"error": f"Unexpected error: {str(e)}"}

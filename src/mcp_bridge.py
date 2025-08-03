@@ -73,8 +73,14 @@ class MCPBridge:
                 handler = await create_handler(tool_name)
                 self.server.add_tool(tool, handler)
 
+        except httpx.HTTPStatusError as exc:
+            print(f"HTTP error initializing MCP bridge: {exc}", file=sys.stderr)
+            raise
+        except (httpx.ConnectError, httpx.TimeoutException, httpx.NetworkError) as exc:
+            print(f"Network error initializing MCP bridge: {exc}", file=sys.stderr)
+            raise
         except Exception as exc:
-            print(f"Error initializing MCP bridge: {exc}", file=sys.stderr)
+            print(f"Unexpected error initializing MCP bridge: {exc}", file=sys.stderr)
             raise
 
     async def run(self):
@@ -97,11 +103,16 @@ async def main():
         response = await bridge.client.get(f"{bridge.base_url}/")
         response.raise_for_status()
         print("Connected to FastAPI server", file=sys.stderr)
-    except Exception:
+    except (httpx.ConnectError, httpx.TimeoutException, httpx.NetworkError) as e:
         print(
-            f"Error: FastAPI server not running at {bridge.base_url}", file=sys.stderr
+            f"Error: FastAPI server not running at {bridge.base_url} - {e}",
+            file=sys.stderr,
         )
         print("Please start the server with 'nix run' first", file=sys.stderr)
+        await bridge.cleanup()
+        sys.exit(1)
+    except Exception as e:
+        print(f"Unexpected error connecting to server: {e}", file=sys.stderr)
         await bridge.cleanup()
         sys.exit(1)
 

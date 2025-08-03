@@ -1,9 +1,13 @@
+"""Kubernetes persistent volumes tool for managing storage."""
+
 from kubernetes import client, config
 
 from src.base_tool import BaseTool
 
 
 class KubernetesPersistentVolumesTool(BaseTool):
+    """Tool for listing and managing Kubernetes persistent volumes and claims."""
+
     def execute(self, **kwargs):
         try:
             config.load_kube_config()
@@ -23,5 +27,11 @@ class KubernetesPersistentVolumesTool(BaseTool):
                     }
                 )
             return {"persistent_volumes": pv_list}
+        except config.ConfigException as e:
+            return {"error": f"Kubernetes configuration error: {str(e)}"}
+
+        except ValueError as e:
+            return {"error": f"Invalid parameter value: {str(e)}"}
+
         except Exception as e:
-            return {"error": str(e)}
+            return {"error": f"Unexpected error: {str(e)}"}

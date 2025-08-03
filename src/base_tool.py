@@ -1,9 +1,24 @@
+"""Base class for all tool implementations in the uber-mcp-server."""
+
+
 class BaseTool:
+    """Abstract base class that all MCP tools must inherit from."""
+
     def __init__(self, name: str):
+        """Initialize the tool with a name.
+
+        Args:
+            name: The name of the tool.
+        """
         self._name = name
 
     @property
     def name(self):
+        """Get the name of the tool.
+
+        Returns:
+            The tool's name.
+        """
         return self._name
 
     def execute(self, **kwargs):

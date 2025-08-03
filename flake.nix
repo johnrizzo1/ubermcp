@@ -42,6 +42,7 @@
           
           # Type stubs
           types-requests
+          types-pyyaml
           
           # Build tools
           build
@@ -195,7 +196,7 @@
               ${pythonEnv}/bin/isort src/ --check-only
               echo "2. Running pylint..."
               export PYTHONPATH="./src:$PYTHONPATH"
-              ${pythonEnv}/bin/pylint src/ --disable=C0111,R0903
+              ${pythonEnv}/bin/pylint src/ --rcfile=.pylintrc
               echo "3. Running type checking..."
               ${pythonEnv}/bin/mypy src/ --ignore-missing-imports
               echo "All quality checks passed!"
@@ -213,7 +214,7 @@
               ${pythonEnv}/bin/black src/ --check && ${pythonEnv}/bin/isort src/ --check-only
               
               echo "2. Linting..."
-              ${pythonEnv}/bin/pylint src/ --disable=C0111,R0903
+              ${pythonEnv}/bin/pylint src/ --rcfile=.pylintrc
               
               echo "3. Type checking..."
               ${pythonEnv}/bin/mypy src/ --ignore-missing-imports
@@ -304,7 +305,7 @@
           } ''
             export PYTHONPATH="${./.}/src:$PYTHONPATH"
             cd ${./.}
-            ${pythonEnv}/bin/pylint src/ --disable=C0111,R0903
+            ${pythonEnv}/bin/pylint src/ --rcfile=.pylintrc
             touch $out
           '';
           
