@@ -66,17 +66,69 @@ The `BaseTool` class provides the basic structure for all tools. It has two main
 
 The following Kubernetes-related tools are available:
 
-- `KubernetesPodsTool`: Lists Kubernetes Pods.
-- `KubernetesEventsTool`: Lists Kubernetes Events.
-- `KubernetesDeploymentsTool`: Lists Kubernetes Deployments.
-- `KubernetesServicesTool`: Lists Kubernetes Services.
-- `KubernetesIngressesTool`: Lists Kubernetes Ingresses.
-- `KubernetesSecretsTool`: Lists Kubernetes Secrets.
-- `KubernetesPersistentVolumesTool`: Lists Kubernetes Persistent Volumes.
-- `KubernetesJobsTool`: Lists Kubernetes Jobs.
-- `KubernetesCronJobsTool`: Lists Kubernetes CronJobs.
-- `KubernetesRoutesTool`: Placeholder for OpenShift Routes.
-- `KubernetesPortForwardingTool`: Placeholder for Port Forwarding (requires asynchronous handling).
+#### Resource Management
+- `KubernetesPodsTool`: Lists Kubernetes Pods
+- `KubernetesEventsTool`: Lists Kubernetes Events
+- `KubernetesDeploymentsTool`: Lists Kubernetes Deployments
+- `KubernetesServicesTool`: Lists Kubernetes Services
+- `KubernetesIngressesTool`: Lists Kubernetes Ingresses
+- `KubernetesSecretsTool`: Lists Kubernetes Secrets
+- `KubernetesPersistentVolumesTool`: Lists Kubernetes Persistent Volumes
+- `KubernetesJobsTool`: Lists Kubernetes Jobs
+- `KubernetesCronJobsTool`: Lists Kubernetes CronJobs
+- `KubernetesRoutesTool`: Manages OpenShift Routes
+
+#### Resource Operations
+- `KubernetesGetTool`: Get one or many resources
+- `KubernetesDescribeTool`: Show details of a specific resource or group of resources
+- `KubernetesCreateTool`: Create a resource from a file or from stdin
+- `KubernetesApplyTool`: Apply a configuration to a resource by filename or stdin
+- `KubernetesDeleteTool`: Delete resources by filenames, stdin, resources and names, or by resources and label selector
+- `KubernetesEditTool`: Edit a resource on the server
+- `KubernetesPatchTool`: Update field(s) of a resource using strategic merge patch
+- `KubernetesAnnotateTool`: Update the annotations on a resource
+- `KubernetesLabelTool`: Update the labels on a resource
+- `KubernetesSetTool`: Set specific features on objects
+
+#### Deployment & Scaling
+- `KubernetesRolloutTool`: Manage the rollout of a resource
+- `KubernetesScaleTool`: Set a new size for a Deployment, ReplicaSet, Replication Controller, or StatefulSet
+- `KubernetesAutoscaleTool`: Auto-scale a Deployment, ReplicaSet, or ReplicationController
+- `KubernetesExposeTool`: Take a replication controller, service, deployment or pod and expose it as a new Kubernetes Service
+- `KubernetesRunTool`: Run a particular image on the cluster
+
+#### Debugging & Monitoring
+- `KubernetesLogsTool`: Print the logs for a container in a pod
+- `KubernetesExecTool`: Execute a command in a container
+- `KubernetesPortForwardingTool`: Forward one or more local ports to a pod
+- `KubernetesCpTool`: Copy files and directories to and from containers
+- `KubernetesTopTool`: Display Resource (CPU/Memory/Storage) usage
+
+#### Cluster Information
+- `KubernetesClusterInfoTool`: Display cluster info
+- `KubernetesExplainTool`: Documentation of resources
+- `KubernetesNodeManagementTool`: Manage Kubernetes nodes (cordon, uncordon, drain)
+
+### Helm Tools
+
+The following Helm-related tools are available:
+
+#### Package Management
+- `HelmInstallTool`: Install a chart
+- `HelmUpgradeTool`: Upgrade a release
+- `HelmUninstallTool`: Uninstall a release
+- `HelmRollbackTool`: Roll back a release to a previous revision
+
+#### Information & Search
+- `HelmListTool`: List releases
+- `HelmStatusTool`: Display the status of the named release
+- `HelmGetTool`: Download extended information of a named release
+- `HelmHistoryTool`: Fetch release history
+- `HelmShowTool`: Show information of a chart
+- `HelmSearchTool`: Search for a keyword in charts
+
+#### Repository Management
+- `HelmRepoTool`: Add, list, remove, update, and index chart repositories
 
 ## Instructions
 
@@ -106,3 +158,10 @@ class MyTool(BaseTool):
 1.  Enter the development environment by running `devenv shell`.
 2.  Run `devenv up` to start the MCP server. The server will be available at `http://localhost:8080`.
 
+### Adding the mcp server to Claude Code
+
+> claude mcp list
+uber-mcp-server: /Users/jrizzo/Projects/ai/agents/ubermcp/run_mcp_bridge.sh
+
+> claude mcp add --transport http uber-mcp-server http://localhost:8080/mcp/v1/message
+Added HTTP MCP server uber-mcp-server with URL: http://localhost:8080/mcp/v1/message to local config
