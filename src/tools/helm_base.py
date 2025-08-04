@@ -12,7 +12,9 @@ class HelmBaseTool(BaseTool):
         """Execute method to be overridden by subclasses"""
         raise NotImplementedError("Subclasses must implement execute method")
 
-    def _run_helm_command(self, command, capture_output=True, input_data=None):
+    def _run_helm_command(
+        self, command, capture_output=True, input_data=None, cwd=None
+    ):
         """Run a helm command and return the result"""
         try:
             # Ensure helm is available
@@ -33,6 +35,7 @@ class HelmBaseTool(BaseTool):
                     text=True,
                     input=input_data,
                     check=False,
+                    cwd=cwd,
                 )
 
                 if result.returncode == 0:
@@ -48,7 +51,11 @@ class HelmBaseTool(BaseTool):
                 }
             # For streaming commands
             with subprocess.Popen(
-                command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+                command,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                cwd=cwd,
             ) as process:
                 stdout, stderr = process.communicate(input=input_data)
 

@@ -29,6 +29,7 @@ class HelmUpgradeTool(HelmBaseTool):
             dry_run = kwargs.get("dry_run", False)
             reset_values = kwargs.get("reset_values", False)
             reuse_values = kwargs.get("reuse_values", False)
+            build_dependencies = kwargs.get("build_dependencies", True)
             kubeconfig = kwargs.get("kubeconfig", None)
             context = kwargs.get("context", None)
 
@@ -36,6 +37,38 @@ class HelmUpgradeTool(HelmBaseTool):
                 return {"error": "release_name is required"}
             if not chart:
                 return {"error": "chart is required"}
+
+            # Check if chart is a local directory and build dependencies if needed
+            if build_dependencies and os.path.isdir(chart):
+                chart_yaml_path = os.path.join(chart, "Chart.yaml")
+                if os.path.exists(chart_yaml_path):
+                    # Run helm dependency build for local charts
+                    dep_cmd = ["helm", "dependency", "build", chart]
+                    dep_cmd.extend(self._get_kubeconfig_args(kubeconfig, context))
+
+                    dep_result = self._run_helm_command(dep_cmd)
+
+                    # Check if dependency build was successful
+                    if dep_result.get("status") != "success":
+                        stderr = dep_result.get("stderr", "")
+                        stdout = dep_result.get("stdout", "")
+
+                        # Check for common non-error conditions
+                        if any(
+                            msg in stderr.lower()
+                            for msg in ["no dependencies", "no requirements found"]
+                        ):
+                            pass  # No dependencies to build, continue
+                        else:
+                            # Real error occurred
+                            return {
+                                "error": "Failed to build chart dependencies",
+                                "details": dep_result.get("error", "Unknown error"),
+                                "stderr": stderr,
+                                "stdout": stdout,
+                                "suggestion": "Try running 'helm dependency build' manually first",
+                            }
+                    # If we get here, dependencies were handled (built or not needed)
 
             # Build helm upgrade command
             cmd = ["helm", "upgrade", release_name, chart]

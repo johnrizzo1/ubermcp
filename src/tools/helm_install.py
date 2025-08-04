@@ -2,6 +2,7 @@
 
 import os
 import tempfile
+import time
 
 import yaml
 
@@ -15,6 +16,13 @@ class HelmInstallTool(HelmBaseTool):
         try:
             release_name = kwargs.get("release_name", "")
             chart = kwargs.get("chart", "")
+            # Convert to absolute path if it's a local directory
+            if (
+                chart
+                and not chart.startswith(("http://", "https://"))
+                and os.path.exists(chart)
+            ):
+                chart = os.path.abspath(chart)
             namespace = kwargs.get("namespace", "default")
             values = kwargs.get("values", {})
             values_file = kwargs.get("values_file", None)
@@ -24,6 +32,7 @@ class HelmInstallTool(HelmBaseTool):
             timeout = kwargs.get("timeout", "5m")
             atomic = kwargs.get("atomic", False)
             dry_run = kwargs.get("dry_run", False)
+            build_dependencies = kwargs.get("build_dependencies", True)
             kubeconfig = kwargs.get("kubeconfig", None)
             context = kwargs.get("context", None)
 
@@ -31,6 +40,81 @@ class HelmInstallTool(HelmBaseTool):
                 return {"error": "release_name is required"}
             if not chart:
                 return {"error": "chart is required"}
+
+            # Check if chart is a local directory and build dependencies if needed
+            dependency_build_output = None
+            if build_dependencies and os.path.isdir(chart):
+                # Debug: Check chart directory contents
+                charts_dir = os.path.join(chart, "charts")
+                chart_info = {
+                    "chart_path": chart,
+                    "charts_dir_exists": os.path.exists(charts_dir),
+                    "charts_dir_contents": (
+                        os.listdir(charts_dir) if os.path.exists(charts_dir) else []
+                    ),
+                }
+
+                chart_yaml_path = os.path.join(chart, "Chart.yaml")
+                if os.path.exists(chart_yaml_path):
+                    # Add initial chart info to dependency output
+                    chart_info["chart_yaml_exists"] = True
+
+                    # Run helm dependency build for local charts
+                    dep_cmd = ["helm", "dependency", "build", chart]
+                    dep_cmd.extend(self._get_kubeconfig_args(kubeconfig, context))
+
+                    dep_result = self._run_helm_command(dep_cmd)
+                    dependency_build_output = {
+                        "command": " ".join(dep_cmd),
+                        "result": dep_result,
+                        "chart_info_before": chart_info.copy(),
+                    }
+
+                    # Check if dependency build was successful
+                    if dep_result.get("status") != "success":
+                        stderr = dep_result.get("stderr", "")
+                        stdout = dep_result.get("stdout", "")
+
+                        # Check for common non-error conditions
+                        if any(
+                            msg in stderr.lower()
+                            for msg in ["no dependencies", "no requirements found"]
+                        ):
+                            pass  # No dependencies to build, continue
+                        else:
+                            # Real error occurred
+                            return {
+                                "error": "Failed to build chart dependencies",
+                                "details": dep_result.get("error", "Unknown error"),
+                                "stderr": stderr,
+                                "stdout": stdout,
+                                "suggestion": "Try running 'helm dependency build' manually first",
+                            }
+                    # If we get here, dependencies were handled (built or not needed)
+                    # Update chart info after dependency build
+                    chart_info_after = {
+                        "charts_dir_exists": os.path.exists(charts_dir),
+                        "charts_dir_contents": (
+                            os.listdir(charts_dir) if os.path.exists(charts_dir) else []
+                        ),
+                    }
+                    if dependency_build_output:
+                        dependency_build_output["chart_info_after"] = chart_info_after
+
+                    # Verify dependencies were actually downloaded
+                    if dep_result.get(
+                        "status"
+                    ) == "success" and "Saving" in dep_result.get("stdout", ""):
+                        # Check if charts directory has the expected files
+                        if not os.path.exists(charts_dir) or not os.listdir(charts_dir):
+                            return {
+                                "error": "Dependencies were downloaded but charts directory is empty",
+                                "dependency_build_info": dependency_build_output,
+                                "suggestion": "There may be a permission or path issue. Try running 'helm dependency build' manually.",
+                            }
+
+                        # Add a small delay to ensure filesystem sync
+                        time.sleep(0.5)
 
             # Build helm install command
             cmd = ["helm", "install", release_name, chart]
@@ -86,6 +170,9 @@ class HelmInstallTool(HelmBaseTool):
                 os.unlink(temp_values_file.name)
 
             if "error" in result:
+                # Include dependency build info in error if available
+                if dependency_build_output:
+                    result["dependency_build_info"] = dependency_build_output
                 return result
 
             # Parse JSON output
@@ -94,7 +181,7 @@ class HelmInstallTool(HelmBaseTool):
 
                 release_info = json.loads(result["stdout"])
 
-                return {
+                response = {
                     "status": "success",
                     "message": f"Successfully installed release {release_name}",
                     "release": {
@@ -109,6 +196,9 @@ class HelmInstallTool(HelmBaseTool):
                         "notes": release_info.get("info", {}).get("notes", ""),
                     },
                 }
+                if dependency_build_output:
+                    response["dependency_build_info"] = dependency_build_output
+                return response
             except (json.JSONDecodeError, ValueError, KeyError):
                 # Fallback for non-JSON output
                 return {

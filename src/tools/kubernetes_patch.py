@@ -3,6 +3,7 @@
 import json
 
 from kubernetes import client, config
+from kubernetes.dynamic import DynamicClient
 
 from src.base_tool import BaseTool
 
@@ -19,6 +20,7 @@ class KubernetesPatchTool(BaseTool):
             namespace = kwargs.get("namespace", "default")
             patch = kwargs.get("patch", {})
             patch_type = kwargs.get("patch_type", "strategic")  # strategic, merge, json
+            api_version = kwargs.get("api_version", None)  # For CRDs
 
             if not resource_type:
                 return {"error": "resource_type is required"}
@@ -32,6 +34,8 @@ class KubernetesPatchTool(BaseTool):
             apps_v1 = client.AppsV1Api()
             batch_v1 = client.BatchV1Api()
             networking_v1 = client.NetworkingV1Api()
+            api_extensions_v1 = client.ApiextensionsV1Api()
+            dynamic_client = DynamicClient(client.ApiClient())
 
             # Map patch type to content type
             content_type_map = {
@@ -169,22 +173,94 @@ class KubernetesPatchTool(BaseTool):
                     )
                     kind = "Node"
 
-                else:
-                    return {
-                        "error": f"Patch not implemented for resource type: {resource_type}"
-                    }
+                elif resource_type.lower() in [
+                    "customresourcedefinition",
+                    "customresourcedefinitions",
+                    "crd",
+                    "crds",
+                ]:
+                    # Handle CRDs
+                    result = api_extensions_v1.patch_custom_resource_definition(
+                        name=name,
+                        body=patch,
+                        _content_type=content_type_map[patch_type],
+                    )
+                    kind = "CustomResourceDefinition"
 
-                return {
-                    "status": "success",
-                    "message": f"Successfully patched {kind} {name}",
-                    "resource": {
+                else:
+                    # Try to handle as a custom resource using dynamic client
+                    if api_version:
+                        try:
+                            # Get the API resource
+                            api_resource = None
+                            for api in dynamic_client.resources:
+                                if api.api_version == api_version and (
+                                    api.kind.lower() == resource_type.lower()
+                                    or api.name == resource_type.lower()
+                                    or api.name == resource_type.lower() + "s"
+                                ):
+                                    api_resource = api
+                                    break
+
+                            if not api_resource:
+                                return {
+                                    "error": f"Resource type {resource_type} with API version {api_version} not found"
+                                }
+
+                            # Patch the resource
+                            if api_resource.namespaced and namespace:
+                                result = api_resource.patch(
+                                    name=name,
+                                    namespace=namespace,
+                                    body=patch,
+                                    content_type=content_type_map[patch_type],
+                                )
+                            else:
+                                result = api_resource.patch(
+                                    name=name,
+                                    body=patch,
+                                    content_type=content_type_map[patch_type],
+                                )
+
+                            kind = api_resource.kind
+
+                        except Exception as e:
+                            return {
+                                "error": f"Failed to patch custom resource: {str(e)}"
+                            }
+                    else:
+                        return {
+                            "error": f"Unsupported resource type: {resource_type}. For custom resources, please provide api_version parameter."
+                        }
+
+                # Handle both regular and dynamic client results
+                if hasattr(result, "metadata"):
+                    # Standard API result
+                    resource_info = {
                         "kind": kind,
                         "name": result.metadata.name,
                         "namespace": getattr(
                             result.metadata, "namespace", "cluster-wide"
                         ),
                         "resource_version": result.metadata.resource_version,
-                    },
+                    }
+                else:
+                    # Dynamic client result (dict-like)
+                    resource_info = {
+                        "kind": kind,
+                        "name": result.get("metadata", {}).get("name", name),
+                        "namespace": result.get("metadata", {}).get(
+                            "namespace", "cluster-wide"
+                        ),
+                        "resource_version": result.get("metadata", {}).get(
+                            "resourceVersion", ""
+                        ),
+                    }
+
+                return {
+                    "status": "success",
+                    "message": f"Successfully patched {kind} {name}",
+                    "resource": resource_info,
                     "patch_type": patch_type,
                     "patch_applied": patch,
                 }

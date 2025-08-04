@@ -10,6 +10,7 @@ from src.mcp_server import setup_mcp_server
 # Explicitly import all tools
 from src.tools import (  # Helm tools; Kubernetes tools
     example_tool,
+    helm_dependency,
     helm_get,
     helm_history,
     helm_install,
@@ -26,6 +27,7 @@ from src.tools import (  # Helm tools; Kubernetes tools
     kubernetes_autoscale,
     kubernetes_cluster_info,
     kubernetes_cp,
+    kubernetes_crd,
     kubernetes_create,
     kubernetes_cron_jobs,
     kubernetes_delete,
@@ -76,8 +78,8 @@ def create_app():
 
     # Register tools
     tools = [
-        example_tool.ExampleTool("example"),
         # Helm Commands
+        helm_dependency.HelmDependencyTool("helmdependency"),
         helm_install.HelmInstallTool("helminstall"),
         helm_list.HelmListTool("helmlist"),
         helm_uninstall.HelmUninstallTool("helmuninstall"),
@@ -117,6 +119,7 @@ def create_app():
         # Kubernetes Advanced Commands
         kubernetes_apply.KubernetesApplyTool("kubernetesapply"),
         kubernetes_patch.KubernetesPatchTool("kubernetespatch"),
+        kubernetes_crd.KubernetesCRDTool("kubernetescrd"),
         # Kubernetes Settings Commands
         kubernetes_label.KubernetesLabelTool("kuberneteslabel"),
         kubernetes_annotate.KubernetesAnnotateTool("kubernetesannotate"),
