@@ -50,7 +50,7 @@ class TestMCPServer:
         request = {
             "jsonrpc": "2.0",
             "method": "tools/call",
-            "params": {"name": "example", "arguments": {}},
+            "params": {"name": "helmlist", "arguments": {}},
             "id": 3,
         }
 

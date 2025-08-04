@@ -161,7 +161,7 @@ class MyTool(BaseTool):
 ### Adding the mcp server to Claude Code
 
 > claude mcp list
-uber-mcp-server: /Users/jrizzo/Projects/ai/agents/ubermcp/run_mcp_bridge.sh
+uber-mcp-server: /Users/me/Projects/ai/agents/ubermcp/run_mcp_bridge.sh
 
 > claude mcp add --transport http uber-mcp-server http://localhost:8080/mcp/v1/message
 Added HTTP MCP server uber-mcp-server with URL: http://localhost:8080/mcp/v1/message to local config

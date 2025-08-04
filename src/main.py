@@ -9,7 +9,6 @@ from src.mcp_server import setup_mcp_server
 
 # Explicitly import all tools
 from src.tools import (  # Helm tools; Kubernetes tools
-    example_tool,
     helm_dependency,
     helm_get,
     helm_history,
